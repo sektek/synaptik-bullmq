@@ -1,6 +1,6 @@
-# Project Name
+# synaptik-bullmq
 
-Description
+Library to use @sektek/synaptik with BullMQ
 
 ## Installation
 
