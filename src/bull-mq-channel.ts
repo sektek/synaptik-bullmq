@@ -3,7 +3,7 @@ import {
   Event,
   EventServiceOptions,
 } from '@sektek/synaptik';
-import { Queue } from 'bullmq';
+import { JobsOptions, Queue } from 'bullmq';
 
 import {
   JobNameProviderComponent,
@@ -25,7 +25,9 @@ const DEFAULT_JOB_NAME_PROVIDER: JobNameProviderFn = event => event.id;
 const DEFAULT_JOBS_OPTIONS_PROVIDER: JobsOptionsProviderFn = (
   _event,
   jobName,
+  options = {},
 ) => ({
+  ...options,
   jobId: jobName,
 });
 
@@ -51,14 +53,14 @@ export class BullMqChannel<
     );
   }
 
-  async send(event: T) {
+  async send(event: T, options?: JobsOptions) {
     this.emit('event:received', event);
     try {
       const jobName = await this.#jobNameProvider(event);
       const job = await this.#queue.add(
         jobName,
         event,
-        await this.#jobsOptionsProvider(event, jobName),
+        await this.#jobsOptionsProvider(event, jobName, options),
       );
       this.emit('event:delivered', event);
       this.emit('job:created', job);

@@ -5,6 +5,7 @@ import { JobsOptions } from 'bullmq';
 export type JobsOptionsProviderFn<T extends Event = Event> = (
   event: T,
   jobName?: string,
+  options?: JobsOptions,
 ) => JobsOptions | PromiseLike<JobsOptions>;
 
 export interface JobsOptionsProvider<T extends Event = Event> {
