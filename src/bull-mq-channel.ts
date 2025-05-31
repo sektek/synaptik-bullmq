@@ -41,16 +41,14 @@ export class BullMqChannel<
   constructor(opts: BullMqChannelOptions) {
     super(opts);
     this.#queue = opts.queue;
-    this.#jobNameProvider = getComponent(
-      opts.jobNameProvider,
-      'get',
-      DEFAULT_JOB_NAME_PROVIDER,
-    );
-    this.#jobsOptionsProvider = getComponent(
-      opts.jobsOptionsProvider,
-      'get',
-      DEFAULT_JOBS_OPTIONS_PROVIDER,
-    );
+    this.#jobNameProvider = getComponent(opts.jobNameProvider, 'get', {
+      name: 'jobNameProvider',
+      default: DEFAULT_JOB_NAME_PROVIDER,
+    });
+    this.#jobsOptionsProvider = getComponent(opts.jobsOptionsProvider, 'get', {
+      name: 'jobsOptionsProvider',
+      default: DEFAULT_JOBS_OPTIONS_PROVIDER,
+    });
   }
 
   async send(event: T, options?: JobsOptions) {

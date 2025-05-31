@@ -52,11 +52,10 @@ export class BullMqGateway<T extends Event = Event>
     super(opts);
 
     this.#handler = getEventHandlerComponent(opts.handler);
-    this.#eventExtractor = getComponent(
-      opts.eventExtractor,
-      'extract',
-      DEFAULT_JOB_EVENT_EXTRACTOR,
-    );
+    this.#eventExtractor = getComponent(opts.eventExtractor, 'extract', {
+      name: 'eventExtractor',
+      default: DEFAULT_JOB_EVENT_EXTRACTOR,
+    });
     this.#connection = opts.connection || DEFAULT_CONNECTION;
 
     if (!opts.queue && !opts.queueName) {
