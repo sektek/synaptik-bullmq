@@ -92,11 +92,11 @@ export class BullMqGateway<T extends Event = Event>
       this.emit('job:error', job, err);
     });
 
-    process.on('SIGINT', this.shutdown.bind(this));
-    process.on('SIGTERM', this.shutdown.bind(this));
+    process.on('SIGINT', this.stop.bind(this));
+    process.on('SIGTERM', this.stop.bind(this));
   }
 
-  async shutdown() {
+  async stop() {
     if (this.#worker) {
       await this.#worker.close();
     }
