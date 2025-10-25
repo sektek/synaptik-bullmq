@@ -33,7 +33,7 @@ describe('BullMqGateway', function () {
   });
 
   afterEach(async function () {
-    await gateway.shutdown();
+    await gateway.stop();
     await queue.drain();
   });
 
