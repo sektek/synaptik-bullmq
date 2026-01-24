@@ -1,5 +1,8 @@
 import {
   AbstractEventService,
+  EVENT_DELIVERED,
+  EVENT_ERROR,
+  EVENT_RECEIVED,
   Event,
   EventServiceOptions,
 } from '@sektek/synaptik';
@@ -52,7 +55,7 @@ export class BullMqChannel<
   }
 
   async send(event: T, options?: JobsOptions) {
-    this.emit('event:received', event);
+    this.emit(EVENT_RECEIVED, event);
     try {
       const jobName = await this.#jobNameProvider(event);
       const job = await this.#queue.add(
@@ -60,10 +63,11 @@ export class BullMqChannel<
         event,
         await this.#jobsOptionsProvider(event, jobName, options),
       );
-      this.emit('event:delivered', event);
+      this.emit(EVENT_DELIVERED, event);
       this.emit('job:created', job);
     } catch (err) {
-      this.emit('event:error', event, err);
+      this.emit(EVENT_ERROR, err, event);
+      throw err;
     }
   }
 }

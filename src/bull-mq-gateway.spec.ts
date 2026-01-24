@@ -125,7 +125,7 @@ describe('BullMqGateway', function () {
     await channel.send(event);
     await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
 
-    expect(eventErrorListener).to.have.been.calledWith(event, err);
+    expect(eventErrorListener).to.have.been.calledWith(err, event);
   });
 
   it('should emit the job:error event', async function () {
@@ -144,7 +144,7 @@ describe('BullMqGateway', function () {
     await channel.send(event);
     await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
 
-    expect(jobError).to.have.been.calledWith(match.has('id', job?.id), err);
+    expect(jobError).to.have.been.calledWith(err, match.has('id', job?.id));
   });
 
   describe('with a custom event extractor', function () {

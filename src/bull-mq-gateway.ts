@@ -1,12 +1,20 @@
 import {
   AbstractEventService,
+  EVENT_ERROR,
+  EVENT_PROCESSED,
+  EVENT_RECEIVED,
   Event,
   EventEndpointComponent,
+  EventHandlerEvents,
   EventHandlerFn,
   getEventHandlerComponent,
 } from '@sektek/synaptik';
 import { ConnectionOptions, Job, Worker, WorkerOptions } from 'bullmq';
-import { EventEmittingService, getComponent } from '@sektek/utility-belt';
+import {
+  ErrorHandlerFn,
+  EventEmittingService,
+  getComponent,
+} from '@sektek/utility-belt';
 import _ from 'lodash';
 
 import {
@@ -28,13 +36,10 @@ type BullMqGatewayOptions<T extends Event = Event> = BullMqServiceOptions & {
   workerOptions?: Omit<WorkerOptions, 'connection'>;
 };
 
-type BullMqGatewayEvents<T extends Event = Event> = {
-  'event:received': (event: T) => void;
-  'event:processed': (event: T) => void;
-  'event:error': (event: T, err: Error) => void;
+type BullMqGatewayEvents<T extends Event = Event> = EventHandlerEvents<T> & {
   'job:received': (job: Job) => void;
   'job:completed': (job: Job) => void;
-  'job:error': (job: Job, err: Error) => void;
+  'job:error': ErrorHandlerFn<Job>;
 };
 
 export class BullMqGateway<T extends Event = Event>
@@ -71,13 +76,13 @@ export class BullMqGateway<T extends Event = Event>
       async job => {
         this.emit('job:received', job);
         const event = await this.#eventExtractor(job);
-        this.emit('event:received', event);
+        this.emit(EVENT_RECEIVED, event);
 
         try {
           const result = await this.#handler(event);
-          this.emit('event:processed', event, result);
+          this.emit(EVENT_PROCESSED, event, result);
         } catch (err) {
-          this.emit('event:error', event, err);
+          this.emit(EVENT_ERROR, err, event);
           throw err;
         }
       },
@@ -89,7 +94,7 @@ export class BullMqGateway<T extends Event = Event>
     });
 
     this.#worker.on('failed', (job: Job, err: Error) => {
-      this.emit('job:error', job, err);
+      this.emit('job:error', err, job);
     });
 
     process.on('SIGINT', this.stop.bind(this));
