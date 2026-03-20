@@ -9,6 +9,7 @@ import {
 import { JobsOptions, Queue } from 'bullmq';
 
 import {
+  BullMqChannelSendOptions,
   JobNameProviderComponent,
   JobNameProviderFn,
   JobsOptionsProviderComponent,
@@ -27,12 +28,12 @@ const DEFAULT_JOB_NAME_PROVIDER: JobNameProviderFn = event => event.id;
 
 const DEFAULT_JOBS_OPTIONS_PROVIDER: JobsOptionsProviderFn = (
   _event,
-  jobName,
-  options = {},
-) => ({
-  ...options,
-  jobId: jobName,
-});
+  options: BullMqChannelSendOptions = {},
+) =>
+  ({
+    jobId: options.jobName,
+    ...options,
+  }) as JobsOptions;
 
 export class BullMqChannel<
   T extends Event = Event,
@@ -54,14 +55,17 @@ export class BullMqChannel<
     });
   }
 
-  async send(event: T, options?: JobsOptions) {
+  async send(event: T, options?: BullMqChannelSendOptions) {
     this.emit(EVENT_RECEIVED, event);
     try {
       const jobName = await this.#jobNameProvider(event);
       const job = await this.#queue.add(
         jobName,
         event,
-        await this.#jobsOptionsProvider(event, jobName, options),
+        await this.#jobsOptionsProvider(event, {
+          ...options,
+          jobName,
+        }),
       );
       this.emit(EVENT_DELIVERED, event);
       this.emit('job:created', job);
