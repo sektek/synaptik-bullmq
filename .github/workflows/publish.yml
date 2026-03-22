@@ -6,6 +6,11 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
 jobs:
   check:
     uses: ./.github/workflows/check.yml
