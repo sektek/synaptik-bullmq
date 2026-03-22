@@ -1,4 +1,4 @@
-import { Component } from '@sektek/utility-belt/index.js';
+import { Component } from '@sektek/utility-belt';
 import { Event } from '@sektek/synaptik';
 import { JobsOptions } from 'bullmq';
 

@@ -14,7 +14,7 @@ import {
   JobsOptionsProviderComponent,
   JobsOptionsProviderFn,
 } from './types/index.js';
-import { getComponent } from '@sektek/utility-belt/index.js';
+import { getComponent } from '@sektek/utility-belt';
 
 export type BullMqChannelOptions<T extends Event = Event> =
   EventServiceOptions & {
