@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.2.1](https://github.com/sektek/synaptik-bullmq/compare/v0.2.0...v0.2.1) (2026-03-22)
+
 ## 0.2.0 (2026-03-22)
 
 ### ⚠ BREAKING CHANGES
