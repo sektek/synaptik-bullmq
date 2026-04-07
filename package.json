@@ -14,13 +14,14 @@
     "build": "npx tsc -p tsconfig.build.json",
     "lint": "eslint . --cache",
     "test": "mocha",
+    "test:min": "mocha --config .mocharc.min.cjs",
     "test:cover": "c8 npm run test",
     "packages:update": "npm install --package-lock-only --workspaces=false",
     "release": "release-it --ci"
   },
   "dependencies": {
     "@sektek/synaptik": "^0.2.0",
-    "@sektek/utility-belt": "^0.2.3",
+    "@sektek/utility-belt": "^0.3.0",
     "bullmq": "^5.34.1",
     "ioredis": "^5.4.1",
     "lodash": "^4.17.23",
