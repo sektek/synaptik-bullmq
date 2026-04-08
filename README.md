@@ -5,5 +5,5 @@ Library to use @sektek/synaptik with BullMQ
 ## Installation
 
 ```sh
-npm install @sektek/project-name
+npm install @sektek/synaptik-bullmq
 ```
