@@ -1,5 +1,5 @@
 import {
-  AbstractEventService,
+  AbstractEventComponent,
   EVENT_ERROR,
   EVENT_PROCESSED,
   EVENT_RECEIVED,
@@ -43,7 +43,7 @@ type BullMqGatewayEvents<T extends Event = Event> = EventHandlerEvents<T> & {
 };
 
 export class BullMqGateway<T extends Event = Event>
-  extends AbstractEventService
+  extends AbstractEventComponent
   implements EventEmittingService<BullMqGatewayEvents<T>>
 {
   #handler: EventHandlerFn<T>;
