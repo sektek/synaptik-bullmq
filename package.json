@@ -1,6 +1,6 @@
 {
   "name": "@sektek/synaptik-bullmq",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Library to use @sektek/synaptik with BullMQ",
   "author": "Edward Kelly <eddie@sektek.net>",
   "repository": {

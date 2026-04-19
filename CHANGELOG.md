@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2](https://github.com/sektek/synaptik-bullmq/compare/v0.2.1...v0.2.2) (2026-04-19)
+
+### Bug Fixes
+
+* Update to AbstractEventComponent (synaptik ^0.4.0) ([#9](https://github.com/sektek/synaptik-bullmq/issues/9)) ([c6d17a9](https://github.com/sektek/synaptik-bullmq/commit/c6d17a93b709edddeab944b2b6fe61b0d33b6ab4))
+
 ## [0.2.1](https://github.com/sektek/synaptik-bullmq/compare/v0.2.0...v0.2.1) (2026-03-22)
 
 ## 0.2.0 (2026-03-22)
