@@ -20,8 +20,8 @@
     "release": "release-it --ci"
   },
   "dependencies": {
-    "@sektek/synaptik": "^0.2.0",
-    "@sektek/utility-belt": "^0.3.0",
+    "@sektek/synaptik": "^0.4.0",
+    "@sektek/utility-belt": "^0.3.2",
     "bullmq": "^5.34.1",
     "ioredis": "^5.4.1",
     "lodash": "^4.17.23",

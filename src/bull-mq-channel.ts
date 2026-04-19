@@ -1,10 +1,10 @@
 import {
-  AbstractEventService,
+  AbstractEventComponent,
   EVENT_DELIVERED,
   EVENT_ERROR,
   EVENT_RECEIVED,
   Event,
-  EventServiceOptions,
+  EventComponentOptions,
 } from '@sektek/synaptik';
 import { JobsOptions, Queue } from 'bullmq';
 
@@ -17,7 +17,7 @@ import {
 import { getComponent } from '@sektek/utility-belt';
 
 export type BullMqChannelOptions<T extends Event = Event> =
-  EventServiceOptions & {
+  EventComponentOptions & {
     queue: Queue;
     jobNameProvider?: JobNameProviderComponent<T>;
     jobsOptionsProvider?: JobsOptionsProviderComponent<T>;
@@ -36,7 +36,7 @@ const DEFAULT_JOBS_OPTIONS_PROVIDER: JobsOptionsProviderFn = (
 
 export class BullMqChannel<
   T extends Event = Event,
-> extends AbstractEventService {
+> extends AbstractEventComponent {
   #queue: Queue;
   #jobNameProvider: JobNameProviderFn<T>;
   #jobsOptionsProvider: JobsOptionsProviderFn<T>;

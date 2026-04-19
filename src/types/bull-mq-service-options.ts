@@ -1,7 +1,7 @@
 import { ConnectionOptions, Queue } from 'bullmq';
-import { EventServiceOptions } from '@sektek/synaptik';
+import { EventComponentOptions } from '@sektek/synaptik';
 
-export type BullMqServiceOptions = EventServiceOptions & {
+export type BullMqServiceOptions = EventComponentOptions & {
   queue?: Queue;
   queueName?: string;
   connection?: ConnectionOptions;
