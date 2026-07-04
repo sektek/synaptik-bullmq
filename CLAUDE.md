@@ -110,7 +110,7 @@ Rethrowing from the processor causes BullMQ to mark the job as failed.
 | `JobNameProviderFn<T>` / `JobNameProviderComponent<T>` | Returns job name string from event via `.get` |
 | `JobEventExtractorFn<T>` / `JobEventExtractorComponent<T>` | Extracts `Event` from `Job` via `.extract` |
 | `JobsOptionsProviderFn<T>` / `JobsOptionsProviderComponent<T>` | Returns `JobsOptions` from `(event, jobName?, options?)` via `.get` |
-| `BullMqServiceOptions` | `EventServiceOptions & { queue?, queueName?, connection?, blockingConnection? }` |
+| `BullMqServiceOptions` | `EventComponentOptions & { queue?, queueName?, connection?, blockingConnection? }` |
 
 ## Testing
 
