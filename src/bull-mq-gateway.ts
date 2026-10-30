@@ -62,6 +62,7 @@ export class BullMqGateway<T extends Event = Event>
       default: DEFAULT_JOB_EVENT_EXTRACTOR,
     });
     this.#connection = opts.connection || DEFAULT_CONNECTION;
+    this.#workerOptions = opts.workerOptions;
 
     if (!opts.queue && !opts.queueName) {
       throw new Error('Queue or queueName are required');
