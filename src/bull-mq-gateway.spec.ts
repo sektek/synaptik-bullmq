@@ -244,4 +244,21 @@ describe('BullMqGateway', function () {
       expect(handler).to.have.been.calledWith(event);
     });
   });
+
+  describe('with blockingConnection', function () {
+    it('should process jobs with the option set', async function () {
+      gateway = new BullMqGateway({
+        connection,
+        queue,
+        handler,
+        blockingConnection: true,
+      });
+      await gateway.start();
+
+      await channel.send(event);
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
+
+      expect(handler).to.have.been.calledWith(event);
+    });
+  });
 });
