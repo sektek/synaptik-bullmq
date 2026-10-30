@@ -224,7 +224,11 @@ describe('BullMqGateway', function () {
     it('should prefer the connection option over workerOptions', async function () {
       const workerOptions = {
         concurrency: 2,
-        connection: { host: 'unreachable.invalid', port: 1 },
+        connection: {
+          host: 'unreachable.invalid',
+          port: 1,
+          db: 5,
+        },
       };
       gateway = new BullMqGateway({
         connection,

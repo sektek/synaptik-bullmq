@@ -15,7 +15,6 @@ import {
   EventEmittingService,
   getComponent,
 } from '@sektek/utility-belt';
-import _ from 'lodash';
 
 import {
   JobEventExtractorComponent,
@@ -87,7 +86,7 @@ export class BullMqGateway<T extends Event = Event>
           throw err;
         }
       },
-      _.merge({}, this.#workerOptions, { connection: this.#connection }),
+      { ...this.#workerOptions, connection: this.#connection },
     );
 
     this.#worker.on('completed', (job: Job) => {
