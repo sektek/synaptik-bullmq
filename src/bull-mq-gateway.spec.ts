@@ -169,4 +169,79 @@ describe('BullMqGateway', function () {
       expect(eventExtractor).to.have.been.calledWith(match.has('data', event));
     });
   });
+
+  describe('with workerOptions', function () {
+    let inFlight: number;
+    let maxInFlight: number;
+
+    const trackingHandler = async () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME / 2));
+      inFlight--;
+    };
+
+    const sendEvents = async (count: number) => {
+      for (let i = 0; i < count; i++) {
+        await channel.send(await EventBuilder.create());
+      }
+    };
+
+    beforeEach(function () {
+      inFlight = 0;
+      maxInFlight = 0;
+    });
+
+    it('should apply the worker options to the worker', async function () {
+      gateway = new BullMqGateway({
+        connection,
+        queue,
+        handler: trackingHandler,
+        workerOptions: { concurrency: 3 },
+      });
+      await gateway.start();
+
+      await sendEvents(3);
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME * 2));
+
+      expect(maxInFlight).to.equal(3);
+    });
+
+    it('should process one job at a time by default', async function () {
+      gateway = new BullMqGateway({
+        connection,
+        queue,
+        handler: trackingHandler,
+      });
+      await gateway.start();
+
+      await sendEvents(3);
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME * 3));
+
+      expect(maxInFlight).to.equal(1);
+    });
+
+    it('should prefer the connection option over workerOptions', async function () {
+      const workerOptions = {
+        concurrency: 2,
+        connection: {
+          host: 'unreachable.invalid',
+          port: 1,
+          db: 5,
+        },
+      };
+      gateway = new BullMqGateway({
+        connection,
+        queue,
+        handler,
+        workerOptions,
+      });
+      await gateway.start();
+
+      await channel.send(event);
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
+
+      expect(handler).to.have.been.calledWith(event);
+    });
+  });
 });
