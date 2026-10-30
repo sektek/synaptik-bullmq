@@ -47,9 +47,10 @@ describe('RepeatableJobProvider', function () {
     );
     expect(result?.nextJob?.name).to.equal('daily-job');
     expect(result?.nextJob?.data).to.deep.equal({ foo: 'bar' });
-    expect(result?.nextJob?.timestamp + (result?.nextJob?.delay ?? 0)).to.equal(
-      result?.scheduler.next,
-    );
+    expect(result?.nextJob?.opts.delay).to.be.a('number');
+    expect(
+      (result?.nextJob?.timestamp ?? 0) + (result?.nextJob?.delay ?? 0),
+    ).to.equal(result?.scheduler.next);
   });
 
   it('should return undefined for an unknown scheduler id', async function () {
