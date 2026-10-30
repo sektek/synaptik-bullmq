@@ -48,6 +48,7 @@ export class BullMqGateway<T extends Event = Event>
   #handler: EventHandlerFn<T>;
   #queueName: string;
   #connection: ConnectionOptions;
+  #blockingConnection?: boolean;
   #eventExtractor: JobEventExtractorFn<T>;
   #worker?: Worker;
   #workerOptions?: Omit<WorkerOptions, 'connection'>;
@@ -61,6 +62,7 @@ export class BullMqGateway<T extends Event = Event>
       default: DEFAULT_JOB_EVENT_EXTRACTOR,
     });
     this.#connection = opts.connection || DEFAULT_CONNECTION;
+    this.#blockingConnection = opts.blockingConnection;
     this.#workerOptions = opts.workerOptions;
 
     if (!opts.queue && !opts.queueName) {
@@ -86,7 +88,13 @@ export class BullMqGateway<T extends Event = Event>
           throw err;
         }
       },
-      { ...this.#workerOptions, connection: this.#connection },
+      {
+        ...this.#workerOptions,
+        connection: this.#connection,
+        ...(this.#blockingConnection !== undefined && {
+          blockingConnection: this.#blockingConnection,
+        }),
+      },
     );
 
     this.#worker.on('completed', (job: Job) => {
