@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/sektek/synaptik-bullmq/compare/v0.2.2...v0.2.3) (2026-11-01)
+
+### Bug Fixes
+
+* **synaptik-bullmq:** apply workerOptions in BullMqGateway ([#13](https://github.com/sektek/synaptik-bullmq/issues/13)) ([38635a1](https://github.com/sektek/synaptik-bullmq/commit/38635a1d2799a8b1b4df5c73af4802c470f0b6bf))
+* **synaptik-bullmq:** forward blockingConnection to the Worker ([#14](https://github.com/sektek/synaptik-bullmq/issues/14)) ([8593443](https://github.com/sektek/synaptik-bullmq/commit/85934435a1f18739624dda2a94ced3904168c13b))
+
 ## [0.2.2](https://github.com/sektek/synaptik-bullmq/compare/v0.2.1...v0.2.2) (2026-04-19)
 
 ### Bug Fixes
