@@ -1,5 +1,5 @@
-import { Component, OptionalProvider } from '@sektek/utility-belt';
 import { Job, Queue } from 'bullmq';
+import { OptionalProvider } from '@sektek/utility-belt';
 
 /**
  * Options for {@link JobProvider}.
@@ -27,9 +27,3 @@ export class JobProvider implements OptionalProvider<Job, string> {
     return this.#queue.getJob(id);
   }
 }
-
-/**
- * A {@link JobProvider}, or a function with the same signature as its `get`
- * method.
- */
-export type JobProviderComponent = Component<JobProvider, 'get'>;
