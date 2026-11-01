@@ -78,6 +78,7 @@ await gateway.stop();
 | `connection` | `{ host: 'localhost', port: 6379 }` | BullMQ connection options for the worker. |
 | `eventExtractor` | `job.data` | Converts a `Job` into an `Event`. |
 | `workerOptions` | | BullMQ `WorkerOptions` passed to the `Worker` (for example `concurrency`, `limiter`, `lockDuration`). `connection` is taken from the gateway's `connection` option and always wins over any value here. |
+| `blockingConnection` | | Passed to the BullMQ `Worker` as its `blockingConnection` option, overriding any value in `workerOptions`. |
 
 `stop()` closes the worker. `start()` also registers `stop` for `SIGINT` and `SIGTERM`, so a running gateway shuts its worker down on those signals.
 
