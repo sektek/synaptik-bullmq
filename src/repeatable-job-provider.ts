@@ -11,6 +11,9 @@ import {
 
 import { JobProvider, JobProviderComponent } from './job-provider.js';
 
+/** Job states in which a run has not started yet. */
+const PENDING_STATES = new Set(['delayed', 'waiting', 'prioritized']);
+
 /**
  * A job scheduler together with the job for its next run.
  */
@@ -75,11 +78,13 @@ export class RepeatableJobProvider implements Provider<
       return { scheduler };
     }
 
-    const nextJob = await this.#jobProvider.get(
+    const job = await this.#jobProvider.get(
       `repeat:${schedulerId}:${scheduler.next}`,
     );
+    const pending =
+      job !== undefined && PENDING_STATES.has(await job.getState());
 
-    return { scheduler, nextJob };
+    return { scheduler, nextJob: pending ? job : undefined };
   }
 }
 

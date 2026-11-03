@@ -1,7 +1,7 @@
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
-import { Queue } from 'bullmq';
+import { Job, Queue, Worker } from 'bullmq';
 import { ResourceNotFoundError } from '@sektek/utility-belt';
 
 import { RepeatableJobProvider } from './repeatable-job-provider.js';
@@ -96,6 +96,37 @@ describe('RepeatableJobProvider', function () {
       `repeat:daily:${result?.scheduler.next}`,
     ]);
     expect(result?.nextJob).to.be.undefined;
+  });
+
+  it('should return an undefined nextJob when the job has already started', async function () {
+    await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
+    const job = await queue.add('running', {});
+    let release: () => void = () => undefined;
+    const blocker = new Promise<void>(resolve => (release = resolve));
+    let started: () => void = () => undefined;
+    const active = new Promise<void>(resolve => (started = resolve));
+    const worker = new Worker(
+      queue.name,
+      async () => {
+        started();
+        await blocker;
+      },
+      { connection: { host, port } },
+    );
+
+    try {
+      await active;
+      const provider = new RepeatableJobProvider({
+        queue,
+        jobProvider: () => queue.getJob(job.id as string) as Promise<Job>,
+      });
+
+      expect(await job.getState()).to.equal('active');
+      expect((await provider.get('daily')).nextJob).to.be.undefined;
+    } finally {
+      release();
+      await worker.close();
+    }
   });
 
   it('should rethrow other errors from the jobProvider', async function () {
