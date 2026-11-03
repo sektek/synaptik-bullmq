@@ -1,5 +1,9 @@
 import { Job, Queue } from 'bullmq';
-import { OptionalProvider } from '@sektek/utility-belt';
+import {
+  Provider,
+  ProviderComponent,
+  ResourceNotFoundError,
+} from '@sektek/utility-belt';
 
 /**
  * Options for {@link JobProvider}.
@@ -10,9 +14,11 @@ export type JobProviderOptions = {
 };
 
 /**
- * Retrieves a BullMQ job by its id from a queue.
+ * Retrieves a BullMQ job by its id from a queue. Wrap it with `optional()` from
+ * `@sektek/utility-belt` to get `undefined` instead of an error for an unknown
+ * id.
  */
-export class JobProvider implements OptionalProvider<Job, string> {
+export class JobProvider implements Provider<Job, string> {
   #queue: Queue;
 
   constructor(opts: JobProviderOptions) {
@@ -21,9 +27,22 @@ export class JobProvider implements OptionalProvider<Job, string> {
 
   /**
    * @param id - The id of the job to retrieve.
-   * @returns The job, or `undefined` when no job has the given id.
+   * @returns The job.
+   * @throws {ResourceNotFoundError} When no job has the given id.
    */
-  async get(id: string): Promise<Job | undefined> {
-    return this.#queue.getJob(id);
+  async get(id: string): Promise<Job> {
+    const job = await this.#queue.getJob(id);
+
+    if (job === undefined) {
+      throw new ResourceNotFoundError({ resource: 'Job', id });
+    }
+
+    return job;
   }
 }
+
+/**
+ * A {@link JobProvider}, or a function with the same signature as its `get`
+ * method.
+ */
+export type JobProviderComponent = ProviderComponent<Job, string>;

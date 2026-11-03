@@ -116,7 +116,7 @@ The channel and gateway only share the queue name; they can live in different pr
 
 ## Looking up jobs
 
-`JobProvider` resolves a job by id on a queue, or `undefined` when there is none. The default `BullMqChannel` uses the event id as the job id, so an enqueued event can be looked up by its id:
+`JobProvider` resolves a job by id on a queue, and throws a `ResourceNotFoundError` when there is none. The default `BullMqChannel` uses the event id as the job id, so an enqueued event can be looked up by its id:
 
 ```ts
 const provider = new JobProvider({ queue });
@@ -124,7 +124,13 @@ const provider = new JobProvider({ queue });
 await channel.send(event);
 
 const job = await provider.get(event.id);
-const state = await job?.getState();
+const state = await job.getState();
+```
+
+To get `undefined` for an unknown id instead of an error, wrap the provider with `optional()` from `@sektek/utility-belt`:
+
+```ts
+const maybeJob = await optional(provider).get('unknown-id');
 ```
 
 ## Pluggable components

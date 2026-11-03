@@ -1,6 +1,7 @@
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
+import { ResourceNotFoundError, optional } from '@sektek/utility-belt';
 import { EventBuilder } from '@sektek/synaptik';
 import { Queue } from 'bullmq';
 
@@ -40,8 +41,18 @@ describe('JobProvider', function () {
     expect(job?.data).to.deep.equal(event);
   });
 
-  it('should return undefined for an unknown id', async function () {
+  it('should throw ResourceNotFoundError for an unknown id', async function () {
     const provider = new JobProvider({ queue });
+
+    const err = await provider.get('missing').catch(e => e);
+
+    expect(err).to.be.instanceOf(ResourceNotFoundError);
+    expect(err.resource).to.equal('Job');
+    expect(err.id).to.equal('missing');
+  });
+
+  it('should return undefined for an unknown id when wrapped in optional()', async function () {
+    const provider = optional(new JobProvider({ queue }));
 
     await expect(provider.get('missing')).to.eventually.be.undefined;
   });
