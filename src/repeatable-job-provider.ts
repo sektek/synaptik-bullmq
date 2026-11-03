@@ -1,7 +1,6 @@
 import { Job, Queue } from 'bullmq';
 import {
   Provider,
-  ProviderComponent,
   ProviderFn,
   ResourceNotFoundError,
   getComponent,
@@ -77,9 +76,3 @@ export class RepeatableJobProvider implements Provider<Job, string> {
     return job;
   }
 }
-
-/**
- * A {@link RepeatableJobProvider}, or a function with the same signature as
- * its `get` method.
- */
-export type RepeatableJobProviderComponent = ProviderComponent<Job, string>;
