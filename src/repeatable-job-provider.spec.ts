@@ -2,6 +2,7 @@ import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import { Queue } from 'bullmq';
+import { ResourceNotFoundError } from '@sektek/utility-belt';
 
 import { RepeatableJobProvider } from './repeatable-job-provider.js';
 
@@ -53,10 +54,14 @@ describe('RepeatableJobProvider', function () {
     ).to.equal(result?.scheduler.next);
   });
 
-  it('should return undefined for an unknown scheduler id', async function () {
+  it('should throw ResourceNotFoundError for an unknown scheduler id', async function () {
     const provider = new RepeatableJobProvider({ queue });
 
-    await expect(provider.get('missing')).to.eventually.be.undefined;
+    const err = await provider.get('missing').catch(e => e);
+
+    expect(err).to.be.instanceOf(ResourceNotFoundError);
+    expect(err.resource).to.equal('JobScheduler');
+    expect(err.id).to.equal('missing');
   });
 
   it('should return an undefined nextJob when the next job is gone', async function () {
@@ -80,7 +85,7 @@ describe('RepeatableJobProvider', function () {
     const jobProvider = {
       get: async (id: string) => {
         requestedIds.push(id);
-        return undefined;
+        throw new ResourceNotFoundError({ resource: 'Job', id });
       },
     };
     const provider = new RepeatableJobProvider({ queue, jobProvider });
@@ -91,5 +96,18 @@ describe('RepeatableJobProvider', function () {
       `repeat:daily:${result?.scheduler.next}`,
     ]);
     expect(result?.nextJob).to.be.undefined;
+  });
+
+  it('should rethrow other errors from the jobProvider', async function () {
+    await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
+    const error = new Error('boom');
+    const jobProvider = {
+      get: async (): Promise<never> => {
+        throw error;
+      },
+    };
+    const provider = new RepeatableJobProvider({ queue, jobProvider });
+
+    await expect(provider.get('daily')).to.be.rejectedWith(error);
   });
 });
