@@ -29,29 +29,24 @@ describe('RepeatableJobProvider', function () {
     await queue.close();
   });
 
-  it('should return the scheduler and its next job', async function () {
-    await queue.upsertJobScheduler(
+  it("should return the scheduler's next job", async function () {
+    const scheduler = await queue.upsertJobScheduler(
       'daily',
       { pattern: '0 0 * * *' },
       { name: 'daily-job', data: { foo: 'bar' } },
     );
     const provider = new RepeatableJobProvider({ queue });
 
-    const result = await provider.get('daily');
+    const job = await provider.get('daily');
+    const next = (await queue.getJobScheduler('daily'))?.next;
 
-    expect(result).to.exist;
-    expect(result?.scheduler.pattern).to.equal('0 0 * * *');
-    expect(result?.scheduler.next).to.be.a('number');
-    expect(result?.nextJob).to.exist;
-    expect(result?.nextJob?.id).to.equal(
-      `repeat:daily:${result?.scheduler.next}`,
-    );
-    expect(result?.nextJob?.name).to.equal('daily-job');
-    expect(result?.nextJob?.data).to.deep.equal({ foo: 'bar' });
-    expect(result?.nextJob?.opts.delay).to.be.a('number');
-    expect(
-      (result?.nextJob?.timestamp ?? 0) + (result?.nextJob?.delay ?? 0),
-    ).to.equal(result?.scheduler.next);
+    expect(job.id).to.equal(`repeat:daily:${next}`);
+    expect(job.id).to.equal(scheduler.id);
+    expect(job.name).to.equal('daily-job');
+    expect(job.data).to.deep.equal({ foo: 'bar' });
+    expect(job.repeatJobKey).to.equal('daily');
+    expect(job.opts.repeat?.pattern).to.equal('0 0 * * *');
+    expect(job.timestamp + job.delay).to.equal(next);
   });
 
   it('should throw ResourceNotFoundError for an unknown scheduler id', async function () {
@@ -64,7 +59,7 @@ describe('RepeatableJobProvider', function () {
     expect(err.id).to.equal('missing');
   });
 
-  it('should return an undefined nextJob when the next job is gone', async function () {
+  it('should throw ResourceNotFoundError when the next job is gone', async function () {
     const job = await queue.upsertJobScheduler('hourly', {
       pattern: '0 * * * *',
     });
@@ -73,34 +68,36 @@ describe('RepeatableJobProvider', function () {
     await client.del(queue.toKey(job.id as string));
     const provider = new RepeatableJobProvider({ queue });
 
-    const result = await provider.get('hourly');
+    const err = await provider.get('hourly').catch(e => e);
 
-    expect(result?.scheduler).to.exist;
-    expect(result?.nextJob).to.be.undefined;
+    expect(err).to.be.instanceOf(ResourceNotFoundError);
+    expect(err.resource).to.equal('Job');
+    expect(err.id).to.equal(job.id);
   });
 
   it('should use the provided jobProvider to fetch the next job', async function () {
     await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
     const requestedIds: string[] = [];
+    const expected = await queue.add('other', {});
     const jobProvider = {
       get: async (id: string) => {
         requestedIds.push(id);
-        throw new ResourceNotFoundError({ resource: 'Job', id });
+
+        return expected;
       },
     };
     const provider = new RepeatableJobProvider({ queue, jobProvider });
 
-    const result = await provider.get('daily');
+    const job = await provider.get('daily');
+    const next = (await queue.getJobScheduler('daily'))?.next;
 
-    expect(requestedIds).to.deep.equal([
-      `repeat:daily:${result?.scheduler.next}`,
-    ]);
-    expect(result?.nextJob).to.be.undefined;
+    expect(requestedIds).to.deep.equal([`repeat:daily:${next}`]);
+    expect(job).to.equal(expected);
   });
 
-  it('should return an undefined nextJob when the job has already started', async function () {
+  it('should throw ResourceNotFoundError when the job has already started', async function () {
     await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
-    const job = await queue.add('running', {});
+    const running = await queue.add('running', {});
     let release: () => void = () => undefined;
     const blocker = new Promise<void>(resolve => (release = resolve));
     let started: () => void = () => undefined;
@@ -118,11 +115,14 @@ describe('RepeatableJobProvider', function () {
       await active;
       const provider = new RepeatableJobProvider({
         queue,
-        jobProvider: () => queue.getJob(job.id as string) as Promise<Job>,
+        jobProvider: () => queue.getJob(running.id as string) as Promise<Job>,
       });
 
-      expect(await job.getState()).to.equal('active');
-      expect((await provider.get('daily')).nextJob).to.be.undefined;
+      expect(await running.getState()).to.equal('active');
+      const err = await provider.get('daily').catch(e => e);
+
+      expect(err).to.be.instanceOf(ResourceNotFoundError);
+      expect(err.id).to.match(/^repeat:daily:\d+$/);
     } finally {
       release();
       await worker.close();

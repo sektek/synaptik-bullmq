@@ -1,12 +1,10 @@
-import { Job, JobSchedulerJson, Queue } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import {
-  OptionalProvider,
   Provider,
   ProviderComponent,
   ProviderFn,
   ResourceNotFoundError,
   getComponent,
-  optional,
 } from '@sektek/utility-belt';
 
 import { JobProvider, JobProviderComponent } from './job-provider.js';
@@ -15,57 +13,40 @@ import { JobProvider, JobProviderComponent } from './job-provider.js';
 const PENDING_STATES = new Set(['delayed', 'waiting', 'prioritized']);
 
 /**
- * A job scheduler together with the job for its next run.
- */
-export type RepeatableJobResult = {
-  scheduler: JobSchedulerJson;
-  /** `undefined` when the next job has already started or been removed. */
-  nextJob?: Job;
-};
-
-/**
  * Options for {@link RepeatableJobProvider}.
  */
 export type RepeatableJobProviderOptions = {
   /** The queue the job schedulers belong to. */
   queue: Queue;
-  /**
-   * Fetches the next job by id. A `ResourceNotFoundError` from it leaves
-   * `nextJob` undefined. Defaults to a {@link JobProvider} on `queue`.
-   */
+  /** Fetches the next job by id. Defaults to a {@link JobProvider} on `queue`. */
   jobProvider?: JobProviderComponent;
 };
 
 /**
- * Retrieves a BullMQ job scheduler by id along with its next scheduled job.
+ * Retrieves the next scheduled job of a BullMQ job scheduler by the
+ * scheduler's id. The job carries the scheduler's definition in
+ * `job.repeatJobKey` and `job.opts.repeat`.
  */
-export class RepeatableJobProvider implements Provider<
-  RepeatableJobResult,
-  string
-> {
+export class RepeatableJobProvider implements Provider<Job, string> {
   #queue: Queue;
-  #jobProvider: OptionalProvider<Job, string>;
+  #jobProvider: ProviderFn<Job, string>;
 
   constructor(opts: RepeatableJobProviderOptions) {
     this.#queue = opts.queue;
-    const jobProvider: ProviderFn<Job, string> = getComponent(
-      opts.jobProvider,
-      'get',
-      {
-        name: 'jobProvider',
-        default: new JobProvider({ queue: opts.queue }),
-      },
-    );
-
-    this.#jobProvider = optional(jobProvider);
+    this.#jobProvider = getComponent(opts.jobProvider, 'get', {
+      name: 'jobProvider',
+      default: new JobProvider({ queue: opts.queue }),
+    });
   }
 
   /**
    * @param schedulerId - The id of the job scheduler.
-   * @returns The scheduler and its next job.
-   * @throws {ResourceNotFoundError} When no scheduler has the given id.
+   * @returns The scheduler's next job.
+   * @throws {ResourceNotFoundError} When no scheduler has the given id, or the
+   * scheduler has no next job that is still waiting to run (it has already
+   * started, been removed, or the scheduler has reached its limit).
    */
-  async get(schedulerId: string): Promise<RepeatableJobResult> {
+  async get(schedulerId: string): Promise<Job> {
     const scheduler = await this.#queue.getJobScheduler(schedulerId);
     if (!scheduler) {
       throw new ResourceNotFoundError({
@@ -75,16 +56,25 @@ export class RepeatableJobProvider implements Provider<
     }
 
     if (scheduler.next === undefined) {
-      return { scheduler };
+      throw new ResourceNotFoundError({
+        resource: 'Job',
+        id: schedulerId,
+        message: `JobScheduler has no next job: ${schedulerId}`,
+      });
     }
 
-    const job = await this.#jobProvider.get(
-      `repeat:${schedulerId}:${scheduler.next}`,
-    );
-    const pending =
-      job !== undefined && PENDING_STATES.has(await job.getState());
+    const id = `repeat:${schedulerId}:${scheduler.next}`;
+    const job = await this.#jobProvider(id);
 
-    return { scheduler, nextJob: pending ? job : undefined };
+    if (!PENDING_STATES.has(await job.getState())) {
+      throw new ResourceNotFoundError({
+        resource: 'Job',
+        id,
+        message: `Job has already started: ${id}`,
+      });
+    }
+
+    return job;
   }
 }
 
@@ -92,7 +82,4 @@ export class RepeatableJobProvider implements Provider<
  * A {@link RepeatableJobProvider}, or a function with the same signature as
  * its `get` method.
  */
-export type RepeatableJobProviderComponent = ProviderComponent<
-  RepeatableJobResult,
-  string
->;
+export type RepeatableJobProviderComponent = ProviderComponent<Job, string>;
