@@ -133,7 +133,7 @@ To get `undefined` for an unknown id instead of an error, wrap the provider with
 const maybeJob = await optional(provider).get('unknown-id');
 ```
 
-`RepeatableJobProvider` resolves the next job of a job scheduler (see `Queue.upsertJobScheduler`) by the scheduler's id. The job carries the scheduler's definition in `job.repeatJobKey` and `job.opts.repeat`. It throws a `ResourceNotFoundError` when there is no such scheduler, or when its next job is no longer waiting to run (it has already started, been removed, or the scheduler has reached its limit); wrap it with `optional()` to get `undefined` instead:
+`RepeatableJobProvider` resolves the next job of a job scheduler (see `Queue.upsertJobScheduler`) by the scheduler's id. The job carries the scheduler's definition in `job.repeatJobKey` and `job.opts.repeat`. It throws a `ResourceNotFoundError` when there is no such scheduler, or when its next job no longer exists (it has been removed, or the scheduler has reached its limit). The job is returned in whatever state it is in, including `active` while the scheduler prepares its next run, so check `job.getState()` before treating `job.timestamp + job.delay` as an upcoming run time:
 
 ```ts
 await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
@@ -142,7 +142,8 @@ const repeatable = new RepeatableJobProvider({ queue });
 const job = await repeatable.get('daily');
 
 job.opts.repeat?.pattern; // '0 0 * * *'
-job.timestamp + job.delay; // next run time in ms
+await job.getState(); // 'delayed' until the run starts
+job.timestamp + job.delay; // scheduled run time in ms
 ```
 
 ## Pluggable components

@@ -95,7 +95,7 @@ describe('RepeatableJobProvider', function () {
     expect(job).to.equal(expected);
   });
 
-  it('should throw ResourceNotFoundError when the job has already started', async function () {
+  it('should return the job even when it has already started', async function () {
     await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
     const running = await queue.add('running', {});
     let release: () => void = () => undefined;
@@ -119,10 +119,10 @@ describe('RepeatableJobProvider', function () {
       });
 
       expect(await running.getState()).to.equal('active');
-      const err = await provider.get('daily').catch(e => e);
+      const job = await provider.get('daily');
 
-      expect(err).to.be.instanceOf(ResourceNotFoundError);
-      expect(err.id).to.match(/^repeat:daily:\d+$/);
+      expect(job.id).to.equal(running.id);
+      expect(await job.getState()).to.equal('active');
     } finally {
       release();
       await worker.close();
