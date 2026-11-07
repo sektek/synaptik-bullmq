@@ -24,7 +24,8 @@ export type RepeatableJobProviderOptions = {
  * `job.repeatJobKey` and `job.opts.repeat`.
  *
  * The job is returned in whatever state it is in; it may already be `active`
- * while the scheduler prepares its next run. Call `job.getState()` to find out.
+ * while the scheduler prepares its next run, or `completed` once the
+ * scheduler has reached its limit. Call `job.getState()` to find out.
  */
 export class RepeatableJobProvider implements Provider<Job, string> {
   #queue: Queue;
@@ -42,8 +43,8 @@ export class RepeatableJobProvider implements Provider<Job, string> {
    * @param schedulerId - The id of the job scheduler.
    * @returns The scheduler's next job.
    * @throws {ResourceNotFoundError} When no scheduler has the given id, or the
-   * scheduler's next job no longer exists (it has been removed or the
-   * scheduler has reached its limit).
+   * scheduler's next job no longer exists (for example it was removed on
+   * completion after the scheduler reached its limit).
    */
   async get(schedulerId: string): Promise<Job> {
     const scheduler = await this.#queue.getJobScheduler(schedulerId);

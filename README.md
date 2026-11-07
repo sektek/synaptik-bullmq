@@ -133,7 +133,7 @@ To get `undefined` for an unknown id instead of an error, wrap the provider with
 const maybeJob = await optional(provider).get('unknown-id');
 ```
 
-`RepeatableJobProvider` resolves the next job of a job scheduler (see `Queue.upsertJobScheduler`) by the scheduler's id. The job carries the scheduler's definition in `job.repeatJobKey` and `job.opts.repeat`. It throws a `ResourceNotFoundError` when there is no such scheduler, or when its next job no longer exists (it has been removed, or the scheduler has reached its limit). The job is returned in whatever state it is in, including `active` while the scheduler prepares its next run, so check `job.getState()` before treating `job.timestamp + job.delay` as an upcoming run time:
+`RepeatableJobProvider` resolves the next job of a job scheduler (see `Queue.upsertJobScheduler`) by the scheduler's id. The job carries the scheduler's definition in `job.repeatJobKey` and `job.opts.repeat`. It throws a `ResourceNotFoundError` when there is no such scheduler, or when its next job no longer exists (for example, the scheduler reached its limit and the final job was removed on completion). The job is returned in whatever state it is in, including `active` while the scheduler prepares its next run and `completed` once the scheduler has reached its limit, so check `job.getState()` before treating `job.timestamp + job.delay` as an upcoming run time:
 
 ```ts
 await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });

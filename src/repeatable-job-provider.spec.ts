@@ -129,6 +129,51 @@ describe('RepeatableJobProvider', function () {
     }
   });
 
+  describe('when the scheduler has reached its limit', function () {
+    let worker: Worker;
+
+    afterEach(async function () {
+      await worker.close();
+    });
+
+    async function runToLimit(opts?: Job['opts']): Promise<void> {
+      await queue.upsertJobScheduler(
+        'limited',
+        { every: 300, limit: 1 },
+        { name: 'limited-job', opts },
+      );
+      const completed = new Promise<void>(resolve => {
+        worker = new Worker(queue.name, async () => undefined, {
+          connection: { host, port },
+        });
+        worker.on('completed', () => resolve());
+      });
+
+      await completed;
+    }
+
+    it('should return the completed job', async function () {
+      await runToLimit();
+      const provider = new RepeatableJobProvider({ queue });
+
+      const job = await provider.get('limited');
+
+      expect(job.repeatJobKey).to.equal('limited');
+      expect(await job.getState()).to.equal('completed');
+    });
+
+    it('should throw ResourceNotFoundError when the completed job was removed', async function () {
+      await runToLimit({ removeOnComplete: true });
+      const provider = new RepeatableJobProvider({ queue });
+
+      const err = await provider.get('limited').catch(e => e);
+
+      expect(err).to.be.instanceOf(ResourceNotFoundError);
+      expect(err.resource).to.equal('Job');
+      expect(err.id).to.match(/^repeat:limited:\d+$/);
+    });
+  });
+
   it('should rethrow other errors from the jobProvider', async function () {
     await queue.upsertJobScheduler('daily', { pattern: '0 0 * * *' });
     const error = new Error('boom');
