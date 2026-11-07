@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/sektek/synaptik-bullmq/compare/v0.2.3...v0.2.4) (2026-11-07)
+
+### Features
+
+* **synaptik-bullmq:** add JobProvider to retrieve a job by id ([#16](https://github.com/sektek/synaptik-bullmq/issues/16)) ([a5cf4b6](https://github.com/sektek/synaptik-bullmq/commit/a5cf4b6949c10d8e0c58af552d40010cadfe584e))
+* **synaptik-bullmq:** add RepeatableJobProvider to retrieve a repeatable job and its next run ([#17](https://github.com/sektek/synaptik-bullmq/issues/17)) ([590927a](https://github.com/sektek/synaptik-bullmq/commit/590927a967c1ed6fcda2726d9aeb152ada1a67c2))
+
 ## [0.2.3](https://github.com/sektek/synaptik-bullmq/compare/v0.2.2...v0.2.3) (2026-11-01)
 
 ### Bug Fixes
