@@ -13,7 +13,13 @@ import { ConnectionOptions, Job, Worker, WorkerOptions } from 'bullmq';
 import {
   ErrorHandlerFn,
   EventEmittingService,
+  SERVICE_STARTED,
+  SERVICE_START_ERROR,
+  SERVICE_STOPPED,
+  SERVICE_STOP_ERROR,
+  ServiceEvents,
   getComponent,
+  isError,
 } from '@sektek/utility-belt';
 
 import {
@@ -35,12 +41,30 @@ type BullMqGatewayOptions<T extends Event = Event> = BullMqServiceOptions & {
   workerOptions?: Omit<WorkerOptions, 'connection'>;
 };
 
-type BullMqGatewayEvents<T extends Event = Event> = EventHandlerEvents<T> & {
-  'job:received': (job: Job) => void;
-  'job:completed': (job: Job) => void;
-  'job:error': ErrorHandlerFn<Job>;
-};
+/**
+ * Events emitted by a {@link BullMqGateway}.
+ *
+ * @template T The event type handled by the gateway.
+ */
+export type BullMqGatewayEvents<T extends Event = Event> =
+  EventHandlerEvents<T> &
+    ServiceEvents & {
+      'job:received': (job: Job) => void;
+      'job:completed': (job: Job) => void;
+      'job:error': ErrorHandlerFn<Job>;
+    };
 
+/**
+ * A gateway that consumes BullMQ jobs from a queue and dispatches them as
+ * events to a handler.
+ *
+ * **Lifecycle events** — `start()` and `stop()` emit `service:started` and
+ * `service:stopped` on success. On failure only the matching
+ * `service:startError` or `service:stopError` event is emitted, carrying an
+ * `Error`, and the original thrown value is rethrown unchanged.
+ *
+ * @template T The event type handled by this gateway.
+ */
 export class BullMqGateway<T extends Event = Event>
   extends AbstractEventComponent
   implements EventEmittingService<BullMqGatewayEvents<T>>
@@ -72,7 +96,43 @@ export class BullMqGateway<T extends Event = Event>
     this.#queueName = opts.queueName ?? opts.queue?.name ?? 'default';
   }
 
+  /**
+   * Starts the BullMQ worker.
+   *
+   * Emits `service:started` once the worker is created. If starting fails,
+   * emits `service:startError` and rethrows.
+   */
   async start() {
+    try {
+      this.#startWorker();
+    } catch (err) {
+      this.emit(SERVICE_START_ERROR, toError(err));
+      throw err;
+    }
+
+    this.emit(SERVICE_STARTED);
+  }
+
+  /**
+   * Closes the BullMQ worker, waiting for in-flight jobs to finish.
+   *
+   * Emits `service:stopped` once the worker is closed. If stopping fails,
+   * emits `service:stopError` and rethrows.
+   */
+  async stop() {
+    try {
+      if (this.#worker) {
+        await this.#worker.close();
+      }
+    } catch (err) {
+      this.emit(SERVICE_STOP_ERROR, toError(err));
+      throw err;
+    }
+
+    this.emit(SERVICE_STOPPED);
+  }
+
+  #startWorker() {
     this.#worker = new Worker(
       this.#queueName,
       async job => {
@@ -108,10 +168,16 @@ export class BullMqGateway<T extends Event = Event>
     process.on('SIGINT', this.stop.bind(this));
     process.on('SIGTERM', this.stop.bind(this));
   }
+}
 
-  async stop() {
-    if (this.#worker) {
-      await this.#worker.close();
-    }
-  }
+/**
+ * Normalizes a thrown value to an `Error` for lifecycle error events.
+ *
+ * @param thrown - The value that was thrown.
+ * @returns `thrown` if it is an `Error`, otherwise an `Error` wrapping it as `cause`.
+ */
+function toError(thrown: unknown): Error {
+  return isError(thrown)
+    ? thrown
+    : new Error(String(thrown), { cause: thrown });
 }

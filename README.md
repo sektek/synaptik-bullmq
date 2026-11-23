@@ -91,6 +91,10 @@ await gateway.stop();
 | `job:received` | `job` | A job is picked up, before extraction. |
 | `job:completed` | `job` | The handler succeeded. |
 | `job:error` | `error, job` | The job failed. |
+| `service:started` | none | `start()` created the worker. |
+| `service:startError` | `error` | `start()` failed; the original error is rethrown. |
+| `service:stopped` | none | `stop()` closed the worker. |
+| `service:stopError` | `error` | `stop()` failed; the original error is rethrown. |
 
 `event:error` is emitted for handler failures. A failure in the event extractor surfaces as `job:error` only, since no event exists yet.
 
