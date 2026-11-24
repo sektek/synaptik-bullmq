@@ -127,30 +127,6 @@ export class BullMqGateway<T extends Event = Event>
     this.emit(SERVICE_STARTED);
   }
 
-  /**
-   * Closes the BullMQ worker, waiting for in-flight jobs to finish.
-   *
-   * Emits `service:stopped` after the worker is closed. If closing throws,
-   * emits only `service:stopError` with the thrown value as an `Error` and
-   * rethrows the original value. A non-`Error` value is wrapped in an `Error`
-   * whose `cause` is the original value.
-   *
-   * When the gateway has not been started, there is no worker to close and
-   * `stop()` still emits `service:stopped`.
-   */
-  async stop() {
-    try {
-      if (this.#worker) {
-        await this.#worker.close();
-      }
-    } catch (err) {
-      this.emit(SERVICE_STOP_ERROR, toError(err));
-      throw err;
-    }
-
-    this.emit(SERVICE_STOPPED);
-  }
-
   #startWorker() {
     this.#worker = new Worker(
       this.#queueName,
@@ -186,5 +162,29 @@ export class BullMqGateway<T extends Event = Event>
 
     process.on('SIGINT', this.stop.bind(this));
     process.on('SIGTERM', this.stop.bind(this));
+  }
+
+  /**
+   * Closes the BullMQ worker, waiting for in-flight jobs to finish.
+   *
+   * Emits `service:stopped` after the worker is closed. If closing throws,
+   * emits only `service:stopError` with the thrown value as an `Error` and
+   * rethrows the original value. A non-`Error` value is wrapped in an `Error`
+   * whose `cause` is the original value.
+   *
+   * When the gateway has not been started, there is no worker to close and
+   * `stop()` still emits `service:stopped`.
+   */
+  async stop() {
+    try {
+      if (this.#worker) {
+        await this.#worker.close();
+      }
+    } catch (err) {
+      this.emit(SERVICE_STOP_ERROR, toError(err));
+      throw err;
+    }
+
+    this.emit(SERVICE_STOPPED);
   }
 }
