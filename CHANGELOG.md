@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0](https://github.com/sektek/synaptik-bullmq/compare/v0.2.4...v0.3.0) (2026-11-24)
+
+### ⚠ BREAKING CHANGES
+
+* **synaptik-bullmq:** emit lifecycle events from BullMqGateway (#19)
+
+### Features
+
+* **synaptik-bullmq:** emit lifecycle events from BullMqGateway ([#19](https://github.com/sektek/synaptik-bullmq/issues/19)) ([cce80b7](https://github.com/sektek/synaptik-bullmq/commit/cce80b776d5dab63a5c6dea1e4387fdc0838b5af)), closes [#startWorker](https://github.com/sektek/synaptik-bullmq/issues/startWorker)
+
 ## [0.2.4](https://github.com/sektek/synaptik-bullmq/compare/v0.2.3...v0.2.4) (2026-11-07)
 
 ### Features
