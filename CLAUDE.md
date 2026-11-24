@@ -100,6 +100,10 @@ per job: emit job:received
 | `event:received` | `(event)` |
 | `event:processed` | `(event, result)` |
 | `event:error` | `(error, event)` |
+| `service:started` | `()` |
+| `service:startError` | `(error)` |
+| `service:stopped` | `()` |
+| `service:stopError` | `(error)` |
 
 Rethrowing from the processor causes BullMQ to mark the job as failed.
 

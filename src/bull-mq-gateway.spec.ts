@@ -1,14 +1,24 @@
-import { expect, use } from 'chai';
-import { fake, match } from 'sinon';
-import sinonChai from 'sinon-chai';
-
 import { Event, EventBuilder, EventHandlerFn } from '@sektek/synaptik';
-import { Job, Queue } from 'bullmq';
+import { Job, Queue, Worker } from 'bullmq';
+import {
+  ProcessManager,
+  SERVICE_STARTED,
+  SERVICE_START_ERROR,
+  SERVICE_STOPPED,
+  SERVICE_STOP_ERROR,
+  isStartable,
+  isStoppable,
+} from '@sektek/utility-belt';
+import { expect, use } from 'chai';
+import { fake, match, restore, stub } from 'sinon';
+import chaiAsPromised from 'chai-as-promised';
+import sinonChai from 'sinon-chai';
 
 import { BullMqChannel } from './bull-mq-channel.js';
 import { BullMqGateway } from './bull-mq-gateway.js';
 
 use(sinonChai);
+use(chaiAsPromised);
 
 const WAIT_TIME = 500;
 const host = process.env.REDIS_HOST || 'localhost';
@@ -33,6 +43,7 @@ describe('BullMqGateway', function () {
   });
 
   afterEach(async function () {
+    restore();
     await gateway.stop();
     await queue.drain();
   });
@@ -259,6 +270,121 @@ describe('BullMqGateway', function () {
       await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
 
       expect(handler).to.have.been.calledWith(event);
+    });
+  });
+
+  describe('lifecycle', function () {
+    const settle = () =>
+      new Promise(resolve => setTimeout(resolve, WAIT_TIME / 5));
+
+    it('should emit service:started then service:stopped once each', async function () {
+      const started = fake();
+      const stopped = fake();
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_STARTED, started).on(SERVICE_STOPPED, stopped);
+
+      await gateway.start();
+      await settle();
+
+      expect(started).to.have.been.calledOnce;
+      expect(stopped).to.not.have.been.called;
+
+      await gateway.stop();
+
+      expect(started).to.have.been.calledOnce;
+      expect(stopped).to.have.been.calledOnce;
+      expect(started).to.have.been.calledBefore(stopped);
+    });
+
+    it('should emit service:startError and rethrow the same error when start fails', async function () {
+      const startError = fake();
+      const started = fake();
+      const err = new Error('start failed');
+      stub(Worker.prototype, 'on').throws(err);
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_START_ERROR, startError).on(SERVICE_STARTED, started);
+
+      await expect(gateway.start()).to.be.rejectedWith(err);
+
+      expect(startError).to.have.been.calledOnceWithExactly(err);
+      expect(started).to.not.have.been.called;
+      await settle();
+      restore();
+      await gateway.stop();
+    });
+
+    it('should emit service:stopped only after the worker is closed', async function () {
+      const stopped = fake();
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_STOPPED, stopped);
+      await gateway.start();
+      await settle();
+      const close = stub(Worker.prototype, 'close').callThrough();
+
+      await gateway.stop();
+
+      expect(close).to.have.been.calledOnce;
+      expect(stopped).to.have.been.calledAfter(close);
+    });
+
+    it('should emit service:stopError and rethrow the same error when stop fails', async function () {
+      const stopError = fake();
+      const stopped = fake();
+      const err = new Error('stop failed');
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_STOP_ERROR, stopError).on(SERVICE_STOPPED, stopped);
+      await gateway.start();
+      await settle();
+      stub(Worker.prototype, 'close').rejects(err);
+
+      await expect(gateway.stop()).to.be.rejectedWith(err);
+
+      expect(stopError).to.have.been.calledOnceWithExactly(err);
+      expect(stopped).to.not.have.been.called;
+      restore();
+      await gateway.stop();
+    });
+
+    it('should wrap a non-Error failure in the event and rethrow the original', async function () {
+      const stopError = fake();
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_STOP_ERROR, stopError);
+      await gateway.start();
+      await settle();
+      stub(Worker.prototype, 'close').callsFake(() => Promise.reject('boom'));
+
+      await expect(gateway.stop()).to.be.rejected.and.eventually.equal('boom');
+
+      expect(stopError).to.have.been.calledOnce;
+      const [emitted] = stopError.firstCall.args;
+      expect(emitted).to.be.instanceOf(Error);
+      expect(emitted.message).to.equal('boom');
+      expect(emitted.cause).to.equal('boom');
+      restore();
+      await gateway.stop();
+    });
+
+    it('should be startable and stoppable', function () {
+      gateway = new BullMqGateway({ connection, queue, handler });
+
+      expect(isStartable(gateway)).to.be.true;
+      expect(isStoppable(gateway)).to.be.true;
+    });
+
+    it('should be managed by a ProcessManager', async function () {
+      const started = fake();
+      const stopped = fake();
+      gateway = new BullMqGateway({ connection, queue, handler });
+      gateway.on(SERVICE_STARTED, started).on(SERVICE_STOPPED, stopped);
+      const manager = new ProcessManager({});
+      manager.add(gateway);
+
+      await manager.start();
+      await settle();
+      await manager.stop();
+
+      expect(started).to.have.been.calledOnce;
+      expect(stopped).to.have.been.calledOnce;
     });
   });
 });
