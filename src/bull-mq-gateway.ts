@@ -44,6 +44,12 @@ type BullMqGatewayOptions<T extends Event = Event> = BullMqServiceOptions & {
 /**
  * Events emitted by a {@link BullMqGateway}.
  *
+ * - `event:received`, `event:processed`, `event:error`: the standard handler
+ *   events.
+ * - `job:received`, `job:completed`, `job:error`: BullMQ job events.
+ * - `service:started`, `service:startError`: outcome of `start()`.
+ * - `service:stopped`, `service:stopError`: outcome of `stop()`.
+ *
  * @template T The event type handled by the gateway.
  */
 export type BullMqGatewayEvents<T extends Event = Event> =
@@ -58,10 +64,12 @@ export type BullMqGatewayEvents<T extends Event = Event> =
  * A gateway that consumes BullMQ jobs from a queue and dispatches them as
  * events to a handler.
  *
- * **Lifecycle events** — `start()` and `stop()` emit `service:started` and
- * `service:stopped` on success. On failure only the matching
- * `service:startError` or `service:stopError` event is emitted, carrying an
- * `Error`, and the original thrown value is rethrown unchanged.
+ * Emits the `Service` lifecycle events; see `start()` and `stop()`. When
+ * `start()` or `stop()` fails, only the matching `service:*Error` event is
+ * emitted, and a thrown value that is not an `Error` is wrapped in one. Event
+ * listeners are called synchronously and their exceptions are not isolated;
+ * an exception thrown by a listener propagates to the caller of `start()` or
+ * `stop()`.
  *
  * @template T The event type handled by this gateway.
  */
@@ -97,10 +105,16 @@ export class BullMqGateway<T extends Event = Event>
   }
 
   /**
-   * Starts the BullMQ worker.
+   * Creates the BullMQ worker and registers `stop` for `SIGINT` and
+   * `SIGTERM`.
    *
-   * Emits `service:started` once the worker is created. If starting fails,
-   * emits `service:startError` and rethrows.
+   * Emits `service:started` after the worker is created. If starting throws,
+   * emits only `service:startError` with the thrown value as an `Error` and
+   * rethrows the original value. A non-`Error` value is wrapped in an `Error`
+   * whose `cause` is the original value.
+   *
+   * Each call creates a new worker and replaces the reference to the previous
+   * one, and emits `service:started` again.
    */
   async start() {
     try {
@@ -116,8 +130,13 @@ export class BullMqGateway<T extends Event = Event>
   /**
    * Closes the BullMQ worker, waiting for in-flight jobs to finish.
    *
-   * Emits `service:stopped` once the worker is closed. If stopping fails,
-   * emits `service:stopError` and rethrows.
+   * Emits `service:stopped` after the worker is closed. If closing throws,
+   * emits only `service:stopError` with the thrown value as an `Error` and
+   * rethrows the original value. A non-`Error` value is wrapped in an `Error`
+   * whose `cause` is the original value.
+   *
+   * When the gateway has not been started, there is no worker to close and
+   * `stop()` still emits `service:stopped`.
    */
   async stop() {
     try {
